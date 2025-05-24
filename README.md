@@ -1,7 +1,3 @@
-# warp-installer-script
-Simple bash script for installing Cloudflare WARP on Debian/Ubuntu and RPM-based Linux systems.
-
-
 # Cloudflare WARP Installer Script
 
 This script automates the installation of the Cloudflare WARP client on various Linux distributions. It detects the package manager, adds the necessary repositories and GPG keys, installs WARP, and attempts to register and connect the client.
