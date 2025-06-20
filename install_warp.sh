@@ -96,26 +96,26 @@ case "$PM" in
     ;;
 esac
 
-echo "Attempting to register Cloudflare WARP..."
+echo "Starting Cloudflare WARP registration process..."
 echo "If this is the first time, you might be prompted to log in via a browser."
 MAX_RETRIES=3
 RETRY_DELAY=5
 REGISTRATION_TIMEOUT=30s
 CONNECTION_TIMEOUT=15s
 
-# Retry logic for warp-cli register
+# Retry logic for warp-cli registration new
 for i in $(seq 1 $MAX_RETRIES); do
-  echo "Attempting to register Cloudflare WARP (attempt $i/$MAX_RETRIES)..."
-  if timeout $REGISTRATION_TIMEOUT warp-cli register; then
-    echo "WARP registration successful or already registered."
+  echo "Attempting Cloudflare WARP registration (attempt $i/$MAX_RETRIES)..."
+  if timeout $REGISTRATION_TIMEOUT warp-cli registration new; then
+    echo "WARP registration successful."
     break
   else
     if [ $i -lt $MAX_RETRIES ]; then
-      echo "Registration attempt $i failed. Retrying in $RETRY_DELAY seconds..."
+      echo "WARP registration attempt $i failed. Retrying in $RETRY_DELAY seconds..."
       sleep $RETRY_DELAY
     else
-      echo "WARP registration failed after $MAX_RETRIES attempts. Please check for any error messages above."
-      echo "You might need to run 'warp-cli register' manually."
+      echo "Cloudflare WARP registration failed after $MAX_RETRIES attempts using 'warp-cli registration new'. Please check for any error messages above."
+      echo "You might need to run 'warp-cli registration new' manually."
       exit 1
     fi
   fi
