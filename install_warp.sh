@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -e
 
+# Stop the service and purge the package to ensure a clean slate
+echo "Stopping warp-svc and purging cloudflare-warp..."
+sudo systemctl stop warp-svc || true
+if command -v apt-get >/dev/null; then
+    sudo apt-get purge -y cloudflare-warp || true
+fi
+
+# Manually remove any lingering directories
+echo "Removing any lingering configuration and runtime directories..."
+sudo rm -rf /var/lib/cloudflare-warp
+sudo rm -rf /etc/cloudflare-warp
+sudo rm -rf /run/cloudflare-warp
+
+
 # Check for sudo privileges
 if ! sudo -n true 2>/dev/null; then
   echo "Error: This script requires sudo privileges to run. Please execute it with sudo or as a user with sudo access." >&2
@@ -38,7 +52,8 @@ else
 fi
 
 # --- Call the check function early ---
-check_if_warp_installed
+# I will not call this here, as the script should be able to be rerun.
+# check_if_warp_installed
 # ---
 
 install_debian() {
@@ -85,16 +100,26 @@ install_rpm() {
   fi
 }
 
-echo "Starting Cloudflare WARP installation using $PM..."
+if ! command -v warp-cli >/dev/null 2>&1; then
+    echo "Starting Cloudflare WARP installation using $PM..."
 
-case "$PM" in
-  apt)
-    install_debian
-    ;;
-  yum|dnf)
-    install_rpm
-    ;;
-esac
+    case "$PM" in
+      apt)
+        install_debian
+        ;;
+      yum|dnf)
+        install_rpm
+        ;;
+    esac
+fi
+
+echo "Ensuring Cloudflare WARP service is running..."
+sudo systemctl start warp-svc
+sleep 2 # Give the service a moment to start
+
+echo "Deleting any existing registration to ensure a clean start..."
+warp-cli --accept-tos registration delete || true
+sleep 1
 
 echo "Starting Cloudflare WARP registration process..."
 echo "If this is the first time, you might be prompted to log in via a browser."
@@ -106,7 +131,7 @@ CONNECTION_TIMEOUT=15s
 # Retry logic for warp-cli registration new
 for i in $(seq 1 $MAX_RETRIES); do
   echo "Attempting Cloudflare WARP registration (attempt $i/$MAX_RETRIES)..."
-  if timeout $REGISTRATION_TIMEOUT warp-cli registration new; then
+  if timeout $REGISTRATION_TIMEOUT warp-cli --accept-tos registration new; then
     echo "WARP registration successful."
     break
   else
@@ -125,7 +150,7 @@ done
 echo "Attempting to connect Cloudflare WARP..."
 for i in $(seq 1 $MAX_RETRIES); do
   echo "Attempting to connect Cloudflare WARP (attempt $i/$MAX_RETRIES)..."
-  if timeout $CONNECTION_TIMEOUT warp-cli connect; then
+  if timeout $CONNECTION_TIMEOUT warp-cli --accept-tos connect; then
     echo "WARP connected successfully."
     break
   else
